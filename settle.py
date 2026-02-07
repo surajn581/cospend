@@ -1,6 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
 from lib.logging import logger
+from settlement_result import SettlementResult
 
 class SettlerBase(ABC):
 
@@ -8,10 +9,10 @@ class SettlerBase(ABC):
         return self.__class__.__name__
  
     @abstractmethod
-    def settle(self, inflowNodes: list, outflowNodes: list):
+    def settle(self, inflowNodes: list, outflowNodes: list) -> SettlementResult:
         pass
 
-class MininumTranscationSettler(SettlerBase):
+class MinimumTranscationSettler(SettlerBase):
 
     @staticmethod
     def _settle( inflowNodes:list, outflowNodes:list ):
@@ -45,7 +46,7 @@ class MininumTranscationSettler(SettlerBase):
                 _inflowNodes.remove( inflowNode )
                 _outflowNodes = _outflowNodes[1:] + [(outflowNode[0], outflowNode[1]-inflowAmount)]
                 _transactions.append((outflowNode[0], inflowNode[0], inflowAmount))
-            rcount, rtransactions = MininumTranscationSettler._settle(_inflowNodes, _outflowNodes)
+            rcount, rtransactions = MinimumTranscationSettler._settle(_inflowNodes, _outflowNodes)
             if rcount < count:
                 count = rcount
                 transactions = _transactions + rtransactions
@@ -61,14 +62,14 @@ class MininumTranscationSettler(SettlerBase):
             outflowNodes (list[tuple[str, float]]): Members who owe money (balance > 0).
 
         Output:
-            transcations: list[tuple[str, str, float]] where each tuple is (payer, receiver, amount).
+            SettlementResult
 
         Notes:
             Uses exhaustive backtracking to guarantee an optimal (minimal) result.
             Complexity is exponential; suitable only for small groups.
         """
         _, transactions = self._settle(inflowNodes=inflowNodes, outflowNodes=outflowNodes)
-        return transactions
+        return SettlementResult(transactions)
     
 class GreedyTransactionSettler(SettlerBase):
 
@@ -108,7 +109,7 @@ class GreedyTransactionSettler(SettlerBase):
             if abs(outflowNodes[j][1]) < 1e-9:
                 j += 1
 
-        return transactions
+        return SettlementResult(transactions)
     
 class Settler(SettlerBase):
 
@@ -122,7 +123,7 @@ class Settler(SettlerBase):
         logger.info(f'Settling with config: {self}')
         nParticipants = len(inflowNodes)+len(outflowNodes)
         if nParticipants<=self.nParticipantsThreshold:
-            settleCls = MininumTranscationSettler
+            settleCls = MinimumTranscationSettler
         else:
             settleCls = GreedyTransactionSettler
         logger.info(f'Using {settleCls.__name__} settlement stragety for {nParticipants} participants')
