@@ -10,5 +10,6 @@ class SettlementResult:
         return len(self.transactions)
 
     def logTransactions(self):
+        logger.info(f'Number of transactions: {self.count}')
         for borrower, lender, amount in sorted(self.transactions, key = lambda row: (row[0], -row[-1]) ):
             logger.info(f'{borrower.capitalize()} has to pay {lender.capitalize()} {amount}')
