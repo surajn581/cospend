@@ -12,7 +12,7 @@ class SettlerBase(ABC):
     def settle(self, inflowNodes: list, outflowNodes: list) -> SettlementResult:
         pass
 
-class MinimumTranscationSettler(SettlerBase):
+class MinimumTransactionSettler(SettlerBase):
 
     @staticmethod
     def _settle( inflowNodes:list, outflowNodes:list ):
@@ -46,13 +46,13 @@ class MinimumTranscationSettler(SettlerBase):
                 _inflowNodes.remove( inflowNode )
                 _outflowNodes = _outflowNodes[1:] + [(outflowNode[0], outflowNode[1]-inflowAmount)]
                 _transactions.append((outflowNode[0], inflowNode[0], inflowAmount))
-            rcount, rtransactions = MinimumTranscationSettler._settle(_inflowNodes, _outflowNodes)
+            rcount, rtransactions = MinimumTransactionSettler._settle(_inflowNodes, _outflowNodes)
             if rcount < count:
                 count = rcount
                 transactions = _transactions + rtransactions
         return count+1, transactions
     
-    def settle(self, inflowNodes: list, outflowNodes: list):
+    def settle(self, inflowNodes: list, outflowNodes: list) -> SettlementResult:
         """
         Recursively computes the minimum number of transactions required to settle
         all debts between participants.
@@ -73,7 +73,7 @@ class MinimumTranscationSettler(SettlerBase):
     
 class GreedyTransactionSettler(SettlerBase):
 
-    def settle(self, inflowNodes:list, outflowNodes:list):
+    def settle(self, inflowNodes: list, outflowNodes: list) -> SettlementResult:
         """
         Computes a near-optimal settlement of debts using a greedy matching strategy.
 
@@ -82,8 +82,7 @@ class GreedyTransactionSettler(SettlerBase):
             outflowNodes: list of (name, balance) where balance > 0 → people who owe money
 
         Output:
-            (num_transactions, transactions_list)
-            where transactions_list = [(payer, receiver, amount), ...]
+            SettlementResult
         """
         # Sort by absolute value for deterministic matching
         inflowNodes = sorted(inflowNodes, key=lambda x: x[1])      # most negative first
@@ -123,8 +122,8 @@ class Settler(SettlerBase):
         logger.info(f'Settling with config: {self}')
         nParticipants = len(inflowNodes)+len(outflowNodes)
         if nParticipants<=self.nParticipantsThreshold:
-            settleCls = MinimumTranscationSettler
+            settleCls = MinimumTransactionSettler
         else:
             settleCls = GreedyTransactionSettler
-        logger.info(f'Using {settleCls.__name__} settlement stragety for {nParticipants} participants')
+        logger.info(f'Using {settleCls.__name__} settlement strategy for {nParticipants} participants')
         return settleCls().settle(inflowNodes, outflowNodes)
