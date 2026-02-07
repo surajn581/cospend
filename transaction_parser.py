@@ -5,10 +5,6 @@ NOT = '!'
 
 class TransactionInputParser:
 
-    def __init__(self, inputString:str):
-        self.validate(inputString)
-        self.inputString = inputString
-
     @classmethod
     @abstractmethod
     def validate(cls, inputString:str):
