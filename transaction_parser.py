@@ -13,6 +13,29 @@ class StringTransactionInputParser(TransactionInputParser):
     
     @classmethod
     def parse(cls, allTransactions:str) -> tuple[list, list]:
+        """
+        Parses a group transaction input string and computes net inflows and outflows 
+        for each member.
+
+        Args:
+            allTransactions (str): 
+                Multiline transaction data in the following format:
+                    group <member1> <member2> ...
+                    <lender> <amount> <borrower1> <borrower2> ...
+                Special rules:
+                    - If no borrowers are listed, the amount is split equally among all members.
+                    - Borrowers prefixed with '!' are excluded from the split.
+
+        Returns:
+            tuple[list[tuple[str, float]], list[tuple[str, float]]]:
+                - inflowNodes: Members owed money (balance < 0).
+                - outflowNodes: Members who owe money (balance > 0).
+
+        Notes:
+            Balances are computed based on equal splits per transaction.
+            The method normalizes all names to lowercase for consistency.
+        """
+
         # reading the first line and getting the names of all the group members
         flowMap = {node: 0 for node in allTransactions.lower().strip().split('\n')[0].split(' ')[1:]}
 
