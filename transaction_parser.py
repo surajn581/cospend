@@ -40,7 +40,7 @@ class StringTransactionInputParser(TransactionInputParser):
     def validate(cls, inputString):
         assert len(inputString)>0, 'Input string cannot be empty'
         cls.validateChars(inputString)
-        assert inputString.startswith(cls.GROUPKEY), 'First line must describe the group'
+        assert inputString.strip().startswith(cls.GROUPKEY), 'First line must describe the group'
     
     @classmethod
     def parse(cls, allTransactions:str) -> tuple[list, list]:
