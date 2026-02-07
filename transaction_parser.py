@@ -1,8 +1,18 @@
 from abc import abstractmethod
 import numpy as np
+import re
 NOT = '!'
 
 class TransactionInputParser:
+
+    def __init__(self, inputString:str):
+        self.validate(inputString)
+        self.inputString = inputString
+
+    @classmethod
+    @abstractmethod
+    def validate(cls, inputString:str):
+        pass
     
     @classmethod
     @abstractmethod
@@ -10,6 +20,31 @@ class TransactionInputParser:
         pass
 
 class StringTransactionInputParser(TransactionInputParser):
+
+    GROUPKEY = 'group'
+
+    @staticmethod
+    def validateChars(allTransactions: str) -> bool:
+        """
+        Validates that the transaction input string contains only allowed characters.
+        allowed characters: alphabets, digits, space, dots, !.
+
+        Args:
+            allTransactions (str): Raw input transaction string.
+
+        Raises:
+            ValueError: If disallowed characters are found in the input.
+        """
+        allowed_pattern = re.compile(r'^[a-zA-Z0-9 !\n.]+$')
+
+        if not allowed_pattern.match(allTransactions):
+            raise ValueError('invalid chars present in the string')
+
+    @classmethod
+    def validate(cls, inputString):
+        assert len(inputString)>0, 'Input string cannot be empty'
+        cls.validateChars(inputString)
+        assert inputString.startswith(cls.GROUPKEY), 'First line must describe the group'
     
     @classmethod
     def parse(cls, allTransactions:str) -> tuple[list, list]:
