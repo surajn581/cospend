@@ -1,11 +1,14 @@
 import numpy as np
 from abc import ABC, abstractmethod
+from lib.logging import logger
 
 class SettlerBase(ABC):
+
+    def __repr__(self):
+        return self.__class__.__name__
  
-    @classmethod
     @abstractmethod
-    def settle(cls, inflowNodes: list, outflowNodes: list):
+    def settle(self, inflowNodes: list, outflowNodes: list):
         pass
 
 class MininumTranscationSettler(SettlerBase):
@@ -48,8 +51,7 @@ class MininumTranscationSettler(SettlerBase):
                 transactions = _transactions + rtransactions
         return count+1, transactions
     
-    @classmethod
-    def settle(cls, inflowNodes: list, outflowNodes: list):
+    def settle(self, inflowNodes: list, outflowNodes: list):
         """
         Recursively computes the minimum number of transactions required to settle
         all debts between participants.
@@ -65,13 +67,12 @@ class MininumTranscationSettler(SettlerBase):
             Uses exhaustive backtracking to guarantee an optimal (minimal) result.
             Complexity is exponential; suitable only for small groups.
         """
-        _, transactions = cls._settle(inflowNodes=inflowNodes, outflowNodes=outflowNodes)
+        _, transactions = self._settle(inflowNodes=inflowNodes, outflowNodes=outflowNodes)
         return transactions
     
 class GreedyTransactionSettler(SettlerBase):
 
-    @classmethod
-    def settle(cls, inflowNodes:list, outflowNodes:list):
+    def settle(self, inflowNodes:list, outflowNodes:list):
         """
         Computes a near-optimal settlement of debts using a greedy matching strategy.
 
@@ -109,3 +110,20 @@ class GreedyTransactionSettler(SettlerBase):
 
         return transactions
     
+class Settler(SettlerBase):
+
+    def __init__(self, nParticipantsThreshold:int = 8):
+        self.nParticipantsThreshold = nParticipantsThreshold
+
+    def __repr__(self):
+        return f'{super().__repr__()}(nParticipantsThreshold={self.nParticipantsThreshold})'
+
+    def settle(self, inflowNodes, outflowNodes):
+        logger.info(f'Settling with config: {self}')
+        nParticipants = len(inflowNodes)+len(outflowNodes)
+        if nParticipants<=self.nParticipantsThreshold:
+            settleCls = MininumTranscationSettler
+        else:
+            settleCls = GreedyTransactionSettler
+        logger.info(f'Using {settleCls.__name__} settlement stragety for {nParticipants} participants')
+        return settleCls().settle(inflowNodes, outflowNodes)
