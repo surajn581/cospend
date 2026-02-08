@@ -12,7 +12,7 @@ class SettlerBase(ABC):
     def settle(self, inflowNodes: list, outflowNodes: list) -> SettlementResult:
         pass
 
-class MinimumTransactionSettler(SettlerBase):
+class OptimialTransactionSettler(SettlerBase):
 
     @staticmethod
     def _settle( inflowNodes:list, outflowNodes:list ):
@@ -46,7 +46,7 @@ class MinimumTransactionSettler(SettlerBase):
                 _inflowNodes.remove( inflowNode )
                 _outflowNodes = _outflowNodes[1:] + [(outflowNode[0], outflowNode[1]-inflowAmount)]
                 _transactions.append((outflowNode[0], inflowNode[0], inflowAmount))
-            rcount, rtransactions = MinimumTransactionSettler._settle(_inflowNodes, _outflowNodes)
+            rcount, rtransactions = OptimialTransactionSettler._settle(_inflowNodes, _outflowNodes)
             if rcount < count:
                 count = rcount
                 transactions = _transactions + rtransactions
@@ -110,6 +110,69 @@ class GreedyTransactionSettler(SettlerBase):
 
         return SettlementResult(transactions)
     
+class SmartTransactionSettler(SettlerBase):
+
+    def __init__(self, depth:int=2):
+        """
+        depth = how many recursive levels to explore (1 = pure greedy)
+        """
+        self.depth = depth
+
+    def _settle(self, inflowNodes, outflowNodes, depth=2):
+
+        # Base case
+        if not inflowNodes or not outflowNodes:
+            return 0, []
+
+        # Sort
+        inflowNodes = sorted(inflowNodes, key=lambda x: x[1])      # most negative first
+        outflowNodes = sorted(outflowNodes, key=lambda x: -x[1])   # most positive first
+
+        best_count = np.inf
+        best_transactions = []
+
+        # try top-k matches instead of just one
+        K = min(len(inflowNodes), 3)  # try top 3 creditors for each debtor
+        for j in range(min(len(outflowNodes), 3)):
+            payer, pay_amt = outflowNodes[j]
+            for i in range(K):
+                receiver, recv_amt = inflowNodes[i]
+
+                amt = min(pay_amt, -recv_amt)
+
+                _inflows = inflowNodes[:]
+                _outflows = outflowNodes[:]
+                _txns = [(payer, receiver, round(amt, 2))]
+
+                # update balances
+                _inflows[i] = (receiver, recv_amt + amt)
+                _outflows[j] = (payer, pay_amt - amt)
+                _inflows = [x for x in _inflows if abs(x[1]) > 1e-9]
+                _outflows = [x for x in _outflows if abs(x[1]) > 1e-9]
+
+                if depth > 1:
+                    c, t = self.settle(_inflows, _outflows, depth - 1)
+                    count = 1 + c
+                    _txns.extend(t)
+                else:
+                    t = GreedyTransactionSettler().settle(_inflows, _outflows)
+                    count = len(t) + 1
+                    _txns.extend(t)
+
+                if count < best_count:
+                    best_count = count
+                    best_transactions = _txns
+
+        return best_count, best_transactions
+    
+    def settle(self, inflowNodes, outflowNodes):
+        """
+        Hybrid approach: limited lookahead recursive matching        
+        """
+        _, transactions = self._settle(inflowNodes, outflowNodes, self.depth)
+        return SettlementResult(transactions)
+
+    
 class Settler(SettlerBase):
 
     def __init__(self, nParticipantsThreshold:int = 8):
@@ -122,7 +185,7 @@ class Settler(SettlerBase):
         logger.info(f'Settling with config: {self}')
         nParticipants = len(inflowNodes)+len(outflowNodes)
         if nParticipants<=self.nParticipantsThreshold:
-            settleCls = MinimumTransactionSettler
+            settleCls = OptimialTransactionSettler
         else:
             settleCls = GreedyTransactionSettler
         logger.info(f'Using {settleCls.__name__} settlement strategy for {nParticipants} participants')
