@@ -8,6 +8,12 @@ class SettlementResult:
     @property
     def count(self):
         return len(self.transactions)
+    
+    def __len__(self):
+        return self.count
+        
+    def __iter__(self):
+        return iter(self.transactions)
 
     def logTransactions(self):
         logger.info(f'Number of transactions: {self.count}')
