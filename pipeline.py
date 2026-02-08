@@ -6,21 +6,24 @@ import settle
 class SettlementPipeline:
 
     def __init__(self,
-                 inputParserKlass: TransactionInputParser = StringTransactionInputParser,
-                 nParticipantsThreshold:int = 8):
+                 inputParserKlass: TransactionInputParser,
+                 settlerKalss: settle.SettlerBase,
+                 settlerKwargs:dict = {}):
         self.inputParserKlass = inputParserKlass
-        self.nParticipantsThreshold = nParticipantsThreshold
+        self.settlerKalss = settlerKalss
+        self.settlerKwargs = settlerKwargs
 
     def _validate(self, inputString:str):
         self.inputParserKlass.validate(inputString)
 
     def _getSettlementTransactions(self, inputTransactions:str)->SettlementResult:
         inflow, outflow = self.inputParserKlass.parse(inputTransactions)
-        return settle.Settler(nParticipantsThreshold=self.nParticipantsThreshold).settle(inflow, outflow)
+        return self.settlerKalss(**self.settlerKwargs).settle(inflow, outflow)
     
-    def getSettlementTransactions(self, inputTransactions:str):
+    def getSettlementTransactions(self, inputTransactions:str, logTransactions:bool=True):
         self._validate(inputTransactions)
         result = self._getSettlementTransactions(inputTransactions)
-        result.logTransactions()
+        if logTransactions:
+            result.logTransactions()
         return result
         
