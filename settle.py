@@ -118,7 +118,7 @@ class SmartTransactionSettler(SettlerBase):
         """
         self.depth = depth
 
-    def _settle(self, inflowNodes, outflowNodes, depth=2):
+    def _settle(self, inflowNodes: list, outflowNodes: list, depth:int=2):
 
         # Base case
         if not inflowNodes or not outflowNodes:
@@ -165,7 +165,7 @@ class SmartTransactionSettler(SettlerBase):
 
         return best_count, best_transactions
     
-    def settle(self, inflowNodes, outflowNodes):
+    def settle(self, inflowNodes: list, outflowNodes: list) -> SettlementResult:
         """
         Hybrid approach: limited lookahead recursive matching        
         """
